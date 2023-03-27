@@ -4,6 +4,7 @@ from aiogram import types
 from aiogram.dispatcher.filters.builtin import CommandStart
 
 from data.config import ADMINS
+from keyboards.default.menu import menu
 from loader import dp, db, bot
 
 
@@ -20,19 +21,8 @@ async def bot_start(message: types.Message):
     except sqlite3.IntegrityError as err:
         await bot.send_message(chat_id=ADMINS[0], text=err)
 
-    await message.answer("Xush kelibsiz!")
+    await message.answer("Xush kelibsiz!", reply_markup=menu)
     # Adminga xabar beramiz
     count = db.count_users()[0]
     msg = f"{message.from_user.full_name} bazaga qo'shildi.\nBazada {count} ta foydalanuvchi bor."
     await bot.send_message(chat_id=ADMINS[0], text=msg)
-
-
-@dp.message_handler(commands="districts")
-async def show_all_districts(message: types.Message):
-    districts = db.get_districts()
-    msg = ""
-    print(districts)
-    for district in districts:
-        msg += f"{district}"
-
-    await message.answer(msg)

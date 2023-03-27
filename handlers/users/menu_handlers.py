@@ -12,11 +12,11 @@ from keyboards.inline.farm_keyboards import (
     one_farmer_keyboards,
 )
 from loader import dp, db
-
+from states.FarmerState import UpdateExcel
 
 
 # Bosh menyu matni uchun handler
-@dp.message_handler(text="Bosh menyu")
+@dp.message_handler(text="Туманлар")
 async def show_menu(message: types.Message):
     # Foydalanuvchilarga barcha kategoriyalarni qaytaramiz
     await list_districts(message)
@@ -55,25 +55,22 @@ async def list_farmers(callback: CallbackQuery, district, farm, **kwargs):
 
 # Biror mahsulot uchun Xarid qilish tugmasini yuboruvchi funksiya
 async def show_item(callback: CallbackQuery, district, farm, farmer):
-    markup = one_farmer_keyboards(district, farm, farmer)
-    print("Your user_id:", callback.message.from_user.id)
-    if callback.message.from_user.id == ADMINS[0]:
-        markup.row(
-            types.InlineKeyboardButton(
-                text="Yangilash",
-                callback_data="update_excel"
-            )
-        )
-    # Mahsulot haqida ma'lumotni bazadan olamiz
-    item = await db.get_product(farmer)
 
-    if item["photo"]:
-        text = f"<a href=\"{item['photo']}\">{item['productname']}</a>\n\n"
+
+
+    if callback.from_user.id == int(ADMINS[0]):
+        markup = await one_farmer_keyboards(district_id=district,
+                                            farm_id=farm, farmer_id=farmer,
+                                            admin=True)
     else:
-        text = f"{item['productname']}\n\n"
-    text += f"Narxi: {item['price']}$\n{item['description']}"
+        markup = await one_farmer_keyboards(district_id=district,
+                                            farm_id=farm, farmer_id=farmer)
+    # Mahsulot haqida ma'lumotni bazadan olamiz
+    item = db.get_farmer_one(farmer_id=farmer)
 
+    text = f"{item}"
     await callback.message.edit_text(text=text, reply_markup=markup)
+    await UpdateExcel.go_state.set()
 
 
 # Yuqoridagi barcha funksiyalar uchun yagona handler
