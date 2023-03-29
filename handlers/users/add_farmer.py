@@ -1,3 +1,5 @@
+import os
+
 from aiogram import types
 from aiogram.dispatcher import FSMContext
 
@@ -35,21 +37,41 @@ async def get_farmer_excel(message: types.Message, state: FSMContext):
 @dp.callback_query_handler(excel_cd.filter(), state=UpdateExcel.go_state)
 async def update_file(call: types.CallbackQuery, callback_data: dict,
                       state: FSMContext):
+    await call.message.edit_reply_markup()
     farmer_id = callback_data.get("farmer_id")
-    await state.update_data({"farmer_id":farmer_id})
+    farm_id = callback_data.get("farm_id")
+    district_id = callback_data.get("district_id")
+    await state.update_data({"district_id":district_id,
+                             "farm_id":farm_id,
+                             "farmer_id":farmer_id})
     await call.message.answer("Хўжаликнинг <b>excel(.xlsx/.xls)</b> файлини "
                               "юборинг...", parse_mode='HTML')
 
     await UpdateExcel.get_excel.set()
 
-@dp.messaage_handler(state=UpdateExcel.get_excel, content_types="document")
+@dp.message_handler(state=UpdateExcel.get_excel, content_types="document")
 async def get_excel_file(message: types.Message, state: FSMContext):
-    await message.document.download(destination=download_path)
     doc_id = message.document.file_id
     data = await state.get_data()
+    district_id = data.get("district_id")
+    farm_id = data.get("farm_id")
     farmer_id = data.get("farmer_id")
+
+
     try:
+        excels = sorted([x for x in os.listdir('download')])
+
+        for excel in excels:
+            if excel.startswith(f"{district_id}-{farm_id}"
+                                f"-{farmer_id}"):
+                os.remove(f"download/{excel}")
+                continue
+        await message.document.download(
+            destination_file=f"download/{district_id}-{farm_id}-{farmer_id}"
+                             f"-{message.document.file_name}")
+
         db.update_excel(excel=doc_id, id=farmer_id)
         await message.answer("Muvaffaqiyatli yangilandi!")
+        await state.finish()
     except Exception as err:
         print(err)

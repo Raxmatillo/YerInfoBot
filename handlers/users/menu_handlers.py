@@ -1,6 +1,7 @@
 from typing import Union
 
 from aiogram import types
+from aiogram.dispatcher import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from data.config import ADMINS
@@ -11,7 +12,7 @@ from keyboards.inline.farm_keyboards import (
     farmer_keyboards,
     one_farmer_keyboards,
 )
-from loader import dp, db
+from loader import dp, db, bot
 from states.FarmerState import UpdateExcel
 
 
@@ -49,33 +50,51 @@ async def list_farms(callback: CallbackQuery, district, **kwargs):
 # Ost-kategoriyaga tegishli mahsulotlar ro'yxatini yuboruvchi funksiya
 async def list_farmers(callback: CallbackQuery, district, farm, **kwargs):
     markup = await farmer_keyboards(district, farm)
-    print("hey")
-    await callback.message.edit_text(text="Mahsulot tanlang", reply_markup=markup)
+    await callback.message.edit_text(text="Bo'lim tanlang",
+                                     reply_markup=markup)
 
 
 # Biror mahsulot uchun Xarid qilish tugmasini yuboruvchi funksiya
 async def show_item(callback: CallbackQuery, district, farm, farmer):
-
-
 
     if callback.from_user.id == int(ADMINS[0]):
         markup = await one_farmer_keyboards(district_id=district,
                                             farm_id=farm, farmer_id=farmer,
                                             admin=True)
     else:
-        markup = await one_farmer_keyboards(district_id=district,
-                                            farm_id=farm, farmer_id=farmer)
+        markup = await one_farmer_keyboards(
+            district_id=district,
+            farm_id=farm,
+            farmer_id=farmer
+        )
+
+    info = db.get_farmer_info(farmer_id=farmer)
+
     # Mahsulot haqida ma'lumotni bazadan olamiz
     item = db.get_farmer_one(farmer_id=farmer)
+    if item[0][3] == None:
+        await callback.answer("Bu bo'lim hali tayyor emas ")
 
-    text = f"{item}"
-    await callback.message.edit_text(text=text, reply_markup=markup)
+    text = f"{item[0][1]} bo'yicha ma'lumotnoma"
+    await callback.message.answer_document(document=item[0][-1])
+    await callback.message.answer(text=text, reply_markup=markup)
+    await callback.message.edit_text(text=f"{info[0][3]}/{info[0][2]}"
+                                          f"/{info[0][1]}")
     await UpdateExcel.go_state.set()
 
 
+# @dp.callback_query_handler(menu_cd.filter(), state=UpdateExcel.go_state)
+# async def unknown_cancel_button(call: CallbackQuery, state: FSMContext,
+#                                 callback_data: dict):
+#     current_level = callback_data.get("level")
+#     if current_level == "3":
+#         await state.finish()
+
+
 # Yuqoridagi barcha funksiyalar uchun yagona handler
+@dp.callback_query_handler(menu_cd.filter(), state=UpdateExcel.go_state)
 @dp.callback_query_handler(menu_cd.filter())
-async def navigate(call: CallbackQuery, callback_data: dict):
+async def navigate(call: CallbackQuery, callback_data: dict, state: FSMContext):
     """
     :param call: Handlerga kelgan Callback query
     :param callback_data: Tugma bosilganda kelgan ma'lumotlar
@@ -83,6 +102,10 @@ async def navigate(call: CallbackQuery, callback_data: dict):
 
     # Foydalanuvchi so'ragan Level (qavat)
     current_level = callback_data.get("level")
+
+    #
+    if current_level == "3":
+        await state.finish()
 
     # Foydalanuvchi so'ragan Kategoriya
     district = callback_data.get("district")

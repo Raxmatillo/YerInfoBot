@@ -4,7 +4,7 @@ from aiogram.utils.callback_data import CallbackData
 from loader import db
 
 menu_cd = CallbackData("menu", "level", "district", "farm", "farmer")
-excel_cd = CallbackData("excel", "farmer_id")
+excel_cd = CallbackData("excel", "district_id", "farm_id", "farmer_id")
 def make_callback_data(level, district="0", farm="0", farmer="0"):
     return menu_cd.new(
         level=level, district=district, farm=farm, farmer=farmer
@@ -93,7 +93,9 @@ int, admin: bool=False):
         markup.row(
             InlineKeyboardButton(
                 text="Yangilash",
-                callback_data=excel_cd.new(farmer_id=farmer_id)
+                callback_data=excel_cd.new(district_id=district_id,
+                                           farm_id=farm_id,
+                                           farmer_id=farmer_id)
             )
         )
     return markup

@@ -140,12 +140,19 @@ class Database:
         """
         return self.execute(sql, fetchall=True)
 
+    def get_farmer_info(self, farmer_id: int):
+        sql = f"""SELECT farmer.id, farmer.name, farm.name, district.name 
+        FROM farmer INNER JOIN farm ON farmer.farm = farm.id INNER JOIN 
+        district ON district.id = farm.district WHERE farmer.id = {farmer_id};"""
+        return self.execute(sql, fetchall=True)
+
     def get_farmer_one(self, farmer_id: int):
         return self.execute(f"SELECT * FROM farmer WHERE id={farmer_id}",
                             fetchall=True)
     def update_excel(self, excel: int, id: int):
         sql = "UPDATE farmer SET excel=? WHERE id=?"
         self.execute(sql, parameters=(excel, id), commit=True)
+
 def logger(statement):
     print(f"""
 _____________________________________________________        
