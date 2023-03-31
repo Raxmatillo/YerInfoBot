@@ -1,3 +1,4 @@
+import os
 from typing import Union
 
 from aiogram import types
@@ -15,6 +16,7 @@ from keyboards.inline.farm_keyboards import (
 from loader import dp, db, bot
 from states.FarmerState import UpdateExcel
 
+from utils.misc.my_functions import excel
 
 # Bosh menyu matni uchun handler
 @dp.message_handler(text="Туманлар")
@@ -31,7 +33,7 @@ async def list_districts(message: Union[CallbackQuery, Message], **kwargs):
 
     # Agar foydalanuvchidan Message kelsa Keyboardni yuboramiz
     if isinstance(message, Message):
-        await message.answer("Bo'lim tanlang", reply_markup=markup)
+        await message.answer("Бўлим танланг", reply_markup=markup)
 
     # Agar foydalanuvchidan Callback kelsa Callback natbibi o'zgartiramiz
     elif isinstance(message, CallbackQuery):
@@ -50,7 +52,7 @@ async def list_farms(callback: CallbackQuery, district, **kwargs):
 # Ost-kategoriyaga tegishli mahsulotlar ro'yxatini yuboruvchi funksiya
 async def list_farmers(callback: CallbackQuery, district, farm, **kwargs):
     markup = await farmer_keyboards(district, farm)
-    await callback.message.edit_text(text="Bo'lim tanlang",
+    await callback.message.edit_text(text="Бўлим танланг",
                                      reply_markup=markup)
 
 
@@ -69,17 +71,25 @@ async def show_item(callback: CallbackQuery, district, farm, farmer):
         )
 
     info = db.get_farmer_info(farmer_id=farmer)
-
-    # Mahsulot haqida ma'lumotni bazadan olamiz
     item = db.get_farmer_one(farmer_id=farmer)
-    if item[0][3] == None:
-        await callback.answer("Bu bo'lim hali tayyor emas ")
 
-    text = f"{item[0][1]} bo'yicha ma'lumotnoma"
-    await callback.message.answer_document(document=item[0][-1])
-    await callback.message.answer(text=text, reply_markup=markup)
-    await callback.message.edit_text(text=f"{info[0][3]}/{info[0][2]}"
-                                          f"/{info[0][1]}")
+    excels = sorted([x for x in os.listdir('download')])
+    file_path = ""
+    for _excel in excels:
+        if _excel.startswith(f"{district}-{farm}-{farmer}"):
+            file_path = "download/"+_excel
+    await callback.message.edit_reply_markup()
+    if item[0][-1] == None:
+        await callback.message.answer(text="Бу бўлим ҳали тайёр эмас!",
+                                      reply_markup=markup)
+    else:
+        info_excel = "<b>Контур - Фосфор | Калий | Gumus</b>\n\n"
+        info_excel += excel(excel_file=file_path)
+        await callback.message.answer_document(document=item[0][-1])
+        await callback.message.answer(text=info_excel, reply_markup=markup,
+                                      parse_mode='html')
+        await callback.message.edit_text(text=f"{info[0][3]}/{info[0][2]}"
+                                              f"/{info[0][1]}")
     await UpdateExcel.go_state.set()
 
 

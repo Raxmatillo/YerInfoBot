@@ -44,7 +44,7 @@ async def farm_keyboards(district_id: int):
         )
     markup.row(
         InlineKeyboardButton(
-            text="⬅️Ortga",
+            text="⬅️ Ортга",
             callback_data=make_callback_data(level=CURRENT_LEVEL-1)
         )
     )
@@ -67,7 +67,7 @@ async def farmer_keyboards(district_id: int, farm_id: int):
         )
     markup.row(
         InlineKeyboardButton(
-            text="⬅️Ortga",
+            text="⬅️ Ортга",
             callback_data=make_callback_data(
                 level=CURRENT_LEVEL-1, district=district_id
             )
@@ -82,7 +82,7 @@ int, admin: bool=False):
     markup = InlineKeyboardMarkup(row_width=1)
     markup.insert(
         InlineKeyboardButton(
-            text="⬅️Ortga",
+            text="⬅️ Ортга",
             callback_data=make_callback_data(
                 level=CURRENT_LEVEL-1, district=district_id, farm=farm_id,
                 farmer=farmer_id
@@ -92,7 +92,7 @@ int, admin: bool=False):
     if admin:
         markup.row(
             InlineKeyboardButton(
-                text="Yangilash",
+                text="🔄 Янгилаш",
                 callback_data=excel_cd.new(district_id=district_id,
                                            farm_id=farm_id,
                                            farmer_id=farmer_id)

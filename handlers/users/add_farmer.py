@@ -7,12 +7,7 @@ from keyboards.default.menu import empty_keyboard
 from keyboards.inline.farm_keyboards import excel_cd
 from loader import dp, db
 
-from pathlib import Path
-
 from states.FarmerState import AddFarmer, UpdateExcel
-
-download_path = Path().joinpath("downloads")
-download_path.mkdir(parents=True, exist_ok=True)
 
 
 
@@ -60,12 +55,10 @@ async def get_excel_file(message: types.Message, state: FSMContext):
 
     try:
         excels = sorted([x for x in os.listdir('download')])
-
         for excel in excels:
             if excel.startswith(f"{district_id}-{farm_id}"
                                 f"-{farmer_id}"):
                 os.remove(f"download/{excel}")
-                continue
         await message.document.download(
             destination_file=f"download/{district_id}-{farm_id}-{farmer_id}"
                              f"-{message.document.file_name}")
