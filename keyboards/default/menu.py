@@ -15,3 +15,12 @@ empty_keyboard = ReplyKeyboardMarkup(
         ],
     ], resize_keyboard=True
 )
+
+
+cancel_keyboard = ReplyKeyboardMarkup(
+    keyboard=[
+        [
+            KeyboardButton(text="Бекор қилиш")
+        ],
+    ], resize_keyboard=True
+)

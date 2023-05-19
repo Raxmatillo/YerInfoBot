@@ -8,4 +8,5 @@ class AddFarmer(StatesGroup):
 
 class UpdateExcel(StatesGroup):
     go_state = State()
+    select_file = State()
     get_excel = State()

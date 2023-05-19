@@ -73,24 +73,27 @@ async def show_item(callback: CallbackQuery, district, farm, farmer):
     info = db.get_farmer_info(farmer_id=farmer)
     item = db.get_farmer_one(farmer_id=farmer)
 
-    excels = sorted([x for x in os.listdir('download')])
+    excels = sorted([x for x in os.listdir('download/excel')])
     file_path = ""
     for _excel in excels:
         if _excel.startswith(f"{district}-{farm}-{farmer}"):
-            file_path = "download/"+_excel
+            file_path = "download/excel/"+_excel
     await callback.message.edit_reply_markup()
-    if item[0][-1] == None:
+    if item[0][-2] == None:
         await callback.message.answer(text="Бу бўлим ҳали тайёр эмас!",
                                       reply_markup=markup)
     else:
         info_excel = "<b>Контур - Фосфор | Калий | Gumus</b>\n\n"
         info_excel += excel(excel_file=file_path)
-        await callback.message.answer_document(document=item[0][-1])
+        await callback.message.answer_document(document=item[0][-2],
+                                               caption="Excel fayl")
+        if item[0][-1] != None:
+            await callback.message.answer_document(document=item[0][-1],
+                                               caption="Word fayl")
         await callback.message.answer(text=info_excel, reply_markup=markup,
                                       parse_mode='html')
-        await callback.message.edit_text(text=f"{info[0][3]}/{info[0][2]}"
-                                              f"/{info[0][1]}")
-    await UpdateExcel.go_state.set()
+        await callback.message.edit_text(text=f"{info[0][3]} / {info[0][2]} "
+                                              f" / {info[0][1]}")
 
 
 # @dp.callback_query_handler(menu_cd.filter(), state=UpdateExcel.go_state)

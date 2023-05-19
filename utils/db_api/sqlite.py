@@ -50,11 +50,12 @@ class Database:
 
     def create_table_farmer(self):
         sql = """
-        CREATE TABLE farmer (
+        CREATE TABLE if not exists farmer  (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name VARCHAR(50) NOT NULL,
         farm INT,
         excel VARCHAR(300) NULL,
+        word VARCHAR(300) NULL,
         FOREIGN KEY (farm) REFERENCES farm(id)
         );
         """
@@ -153,6 +154,14 @@ class Database:
     def update_excel(self, excel: str, id: int):
         sql = "UPDATE farmer SET excel=? WHERE id=?"
         self.execute(sql, parameters=(excel, id), commit=True)
+
+    def update_word(self, word: str, id: int):
+        sql = "UPDATE farmer SET word=? WHERE id=?"
+        self.execute(sql, parameters=(word, id), commit=True)
+
+    def clear_farmer(self):
+        for i in range(19):
+            self.execute("UPDATE farmer SET excel=NULL", commit=True)
 
 def logger(statement):
     print(f"""
