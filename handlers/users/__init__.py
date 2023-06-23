@@ -1,3 +1,4 @@
+from . import admin
 from . import menu_handlers
 from . import add_farmer
 from . import help

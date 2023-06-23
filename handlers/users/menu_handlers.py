@@ -13,6 +13,10 @@ from keyboards.inline.farm_keyboards import (
     farmer_keyboards,
     one_farmer_keyboards,
 )
+from aiogram.dispatcher import FSMContext
+from keyboards.inline.callback_data import district_callback, farm_callback, farmer_callback
+
+
 from loader import dp, db, bot
 from states.FarmerState import UpdateExcel
 
@@ -31,6 +35,11 @@ async def list_districts(message: Union[CallbackQuery, Message], **kwargs):
     # Keyboardni chaqiramiz
     markup = await district_keyboards()
 
+    markup.add(
+        types.InlineKeyboardButton(text="➕ Qo'shish", callback_data="district:add_item"),
+        types.InlineKeyboardButton(text="➖ O'chirish", callback_data="district:del_item"),
+    )
+
     # Agar foydalanuvchidan Message kelsa Keyboardni yuboramiz
     if isinstance(message, Message):
         await message.answer("Бўлим танланг", reply_markup=markup)
@@ -44,6 +53,10 @@ async def list_districts(message: Union[CallbackQuery, Message], **kwargs):
 # Ost-kategoriyalarni qaytaruvchi funksiya
 async def list_farms(callback: CallbackQuery, district, **kwargs):
     markup = await farm_keyboards(district)
+    markup.add(
+        types.InlineKeyboardButton(text="➕ Qo'shish", callback_data=f"farm:add_item:{district}"),
+        types.InlineKeyboardButton(text="➖ O'chirish", callback_data=f"farm:del_item:{district}"),
+    )
 
     # Xabar matnini o'zgartiramiz va keyboardni yuboramiz
     await callback.message.edit_reply_markup(markup)
@@ -52,6 +65,13 @@ async def list_farms(callback: CallbackQuery, district, **kwargs):
 # Ost-kategoriyaga tegishli mahsulotlar ro'yxatini yuboruvchi funksiya
 async def list_farmers(callback: CallbackQuery, district, farm, **kwargs):
     markup = await farmer_keyboards(district, farm)
+
+    markup.add(
+        types.InlineKeyboardButton(text="➕ Qo'shish", callback_data=f"farmer:add_item:{district}:{farm}"),
+        types.InlineKeyboardButton(text="➖ O'chirish", callback_data=f"farmer:del_item:{district}:{farm}"),
+    )
+
+
     await callback.message.edit_text(text="Бўлим танланг",
                                      reply_markup=markup)
 
@@ -108,39 +128,170 @@ async def show_item(callback: CallbackQuery, district, farm, farmer):
 @dp.callback_query_handler(menu_cd.filter(), state=UpdateExcel.go_state)
 @dp.callback_query_handler(menu_cd.filter())
 async def navigate(call: CallbackQuery, callback_data: dict, state: FSMContext):
-    """
-    :param call: Handlerga kelgan Callback query
-    :param callback_data: Tugma bosilganda kelgan ma'lumotlar
-    """
-
-    # Foydalanuvchi so'ragan Level (qavat)
     current_level = callback_data.get("level")
 
-    #
     if current_level == "3":
         await state.finish()
 
-    # Foydalanuvchi so'ragan Kategoriya
     district = callback_data.get("district")
 
-    # Ost-kategoriya (har doim ham bo'lavermaydi)
     farm = callback_data.get("farm")
 
-    # Mahsulot ID raqami (har doim ham bo'lavermaydi)
     farmer = int(callback_data.get("farmer"))
 
-    # Har bir Level (qavatga) mos funksiyalarni yozib chiqamiz
     levels = {
-        "0": list_districts,  # Kategoriyalarni qaytaramiz
-        "1": list_farms,  # Ost-kategoriyalarni qaytaramiz
-        "2": list_farmers,  # Mahsulotlarni qaytaramiz
-        "3": show_item,  # Mahsulotni ko'rsatamiz
+        "0": list_districts,
+        "1": list_farms,
+        "2": list_farmers,
+        "3": show_item,
     }
 
-    # Foydalanuvchidan kelgan Level qiymatiga mos funksiyani chaqiramiz
     current_level_function = levels[current_level]
 
-    # Tanlangan funksiyani chaqiramiz va kerakli parametrlarni uzatamiz
     await current_level_function(
         call, district=district, farm=farm, farmer=farmer
     )
+
+
+
+
+
+
+# district add and delete
+@dp.callback_query_handler(district_callback.filter(item_name="add_item"))
+async def add_district(call: types.CallbackQuery, state: FSMContext):
+    await call.message.edit_reply_markup()
+    await call.message.answer("Yangi tuman nomini yozing")
+    await state.set_state("add_district")
+
+@dp.message_handler(state="add_district")
+async def add_district_to_db(message: types.Message, state: FSMContext):
+    await message.answer(f"Tuman qabul qilindi, {message.text}")
+    await state.finish()
+
+
+@dp.callback_query_handler(district_callback.filter(item_name="del_item"))
+async def del_district(call: types.CallbackQuery, state: FSMContext):
+    await call.message.edit_reply_markup()
+    markup = await district_keyboards(delete=True)
+    markup.row(
+        types.InlineKeyboardButton(text="⬅️ Ортга", callback_data="cancel_del_district")
+    )
+    await call.message.answer("Tumanni o'chirish", reply_markup=markup)
+    await state.set_state("del_district")
+
+
+@dp.callback_query_handler(menu_cd.filter(), state="del_district")
+async def del_district_from_db(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
+    district_id = callback_data.get("district")
+    district = db.get_district_one(id=district_id)[0][0]
+    await call.answer(f"✅ {district} o'chirildi")
+    await call.message.edit_reply_markup()
+    await list_districts(message=call)
+    await state.finish()
+
+@dp.callback_query_handler(text="cancel_del_district", state="del_district")
+async def cancel_delete_district(call: types.CallbackQuery, state: FSMContext):
+    await list_districts(message=call)
+    await state.finish()
+
+
+
+
+# farm add and delete
+@dp.callback_query_handler(farm_callback.filter(item_name="add_item"))
+async def add_farm(call: types.CallbackQuery, state: FSMContext):
+    await call.message.edit_reply_markup()
+    await call.message.answer("Yangi ho'jalik nomini yozing")
+    await state.set_state("add_farm")
+
+@dp.message_handler(state="add_farm")
+async def add_farm_to_db(message: types.Message, state: FSMContext):
+    await message.answer(f"Ho'jalik qabul qilindi, {message.text}")
+    await state.finish()
+
+
+@dp.callback_query_handler(farm_callback.filter(item_name="del_item"))
+async def del_farm(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
+    district_id = callback_data.get("item_id")
+    await call.message.edit_reply_markup()
+    markup = await farm_keyboards(district_id=district_id, delete=True)
+    await call.message.answer("Ho'jalikni o'chirish", reply_markup=markup)
+    await state.update_data(district_id = district_id)
+    await state.set_state("del_farm")
+
+
+@dp.callback_query_handler(menu_cd.filter(), state="del_farm")
+async def del_farm_from_db(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
+    await call.message.edit_reply_markup()
+
+    data = await state.get_data()
+
+    district_id = data["district_id"]
+    cancel = callback_data.get("cancel")
+    if cancel == "farm_cancel":
+        await list_farms(callback=call, district=district_id)
+    else:
+        farm_id = callback_data.get("farm")
+        farm = db.get_farm_one(farm_id=farm_id)[0][0]
+        await call.answer(f"✅ {farm} o'chirildi", cache_time=1)
+        await list_farms(callback=call, district=district_id)
+    await state.finish()
+
+# farmer add and delete
+@dp.callback_query_handler(farmer_callback.filter(item_name="add_item"))
+async def add_farmer(call: types.CallbackQuery, state: FSMContext):
+    await call.message.edit_reply_markup()
+    await call.message.answer("Yangi fermer nomini yozing")
+    await state.set_state("add_farmer")
+
+@dp.message_handler(state="add_farmer")
+async def add_farmer_to_db(message: types.Message, state: FSMContext):
+    await message.answer(f"Fermer qabul qilindi, {message.text}")
+    await state.finish()
+
+
+@dp.callback_query_handler(farmer_callback.filter(item_name="del_item"))
+async def del_farmer(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
+    district_id = callback_data.get("item_id")
+    farm_id = callback_data.get("_item_id")
+    farmer_id = callback_data.get("farmer_id")
+    await call.message.edit_reply_markup()
+    markup = await farmer_keyboards(district_id=district_id, farm_id=farm_id, delete=True)
+    await call.message.answer("Fermerni o'chirish", reply_markup=markup)
+    await state.update_data(farm_id=farm_id, district_id=district_id)
+    await state.set_state("del_farmer")
+
+
+@dp.callback_query_handler(menu_cd.filter(), state="del_farmer")
+async def del_farmer_from_db(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
+    print(callback_data)
+    data = await state.get_data()
+    farm_id = data["farm_id"]
+    district_id = data["district_id"]
+    farmer_id = callback_data.get("farmer")
+
+    print(f"farmer_id: {farmer_id}, farm_id: {farm_id}, district_id: {district_id}")
+    cancel = callback_data.get("cancel")
+    district_id = callback_data.get("district")
+
+    if cancel == "farmer_cancel":
+        print('yeo')
+        await list_farmers(callback=call, district=district_id, farm=farm_id)
+    else:
+        farmer = db.get_farmer_one(farmer_id=farmer_id)[0][1]
+        await call.answer(f"✅ {farmer} o'chirildi", cache_time=1)
+        await list_farmers(callback=call, district=district_id, farm=farm_id)
+    await state.finish()
+
+
+
+
+
+
+# @dp.callback_query_handler(farmer_callback.filter(item_name="show_item"), state="del_farmer")
+# async def cancel_del_farmer(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
+#     await call.message.edit_reply_markup()
+
+
+

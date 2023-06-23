@@ -125,7 +125,8 @@ class Database:
     def get_district(self):
         return self.execute("SELECT * FROM district;", fetchall=True)
 
-
+    def get_district_one(self, id: int):
+        return self.execute(f"SELECT name FROM district WHERE id={id}", fetchall=True)
 
     # farm
     def get_farm(self, district_id: int):
@@ -133,6 +134,9 @@ class Database:
         SELECT * FROM farm WHERE district = {district_id};
         """
         return self.execute(sql, fetchall=True)
+    
+    def get_farm_one(self, farm_id: int):
+        return self.execute(f"SELECT name FROM farm WHERE id={farm_id}", fetchall=True)
 
     # farmer
     def get_farmer(self, farm_id: int):
