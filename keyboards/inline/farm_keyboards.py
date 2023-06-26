@@ -18,7 +18,7 @@ async def district_keyboards(delete: bool=False):
 
     districts = db.get_district()
     for district in districts:
-        button_text = f"{'➖ ' if delete else ''} {district[1]} туман"
+        button_text = f"{'➖ ' if delete else ''} {district[1]}"
         callback_data = make_callback_data(
             level=CURRENT_LEVEL+1, district=district[0], delete=True if delete else False
         )

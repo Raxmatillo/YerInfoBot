@@ -43,6 +43,8 @@ class Database:
         name VARCHAR(50) NOT NULL,
         district INT,
         FOREIGN KEY (district) REFERENCES district(id)
+            ON UPDATE CASCADE
+            ON DELETE CASCADE
         );
         """
         self.execute(sql, commit=True)
@@ -56,7 +58,10 @@ class Database:
         farm INT,
         excel VARCHAR(300) NULL,
         word VARCHAR(300) NULL,
+        file_name VARCHAR(300) NULL,
         FOREIGN KEY (farm) REFERENCES farm(id)
+            ON UPDATE CASCADE
+            ON DELETE CASCADE
         );
         """
         self.execute(sql, commit=True)
@@ -115,30 +120,54 @@ class Database:
         self.execute("DELETE FROM users WHERE TRUE", commit=True)
 
 
+    # district 
     def add_district(self, name: str):
         sql = """
         INSERT INTO district(name) VALUES(?);
         """
         self.execute(sql, parameters=(name,), commit=True)
 
-    # district
     def get_district(self):
         return self.execute("SELECT * FROM district;", fetchall=True)
 
     def get_district_one(self, id: int):
         return self.execute(f"SELECT name FROM district WHERE id={id}", fetchall=True)
+    
+    def delete_district(self, id: int):
+        self.execute(f"DELETE FROM district WHERE id={id}", commit=True)
 
     # farm
+    def add_farm(self, name: str, district: int):
+        sql = """
+        INSERT INTO farm(name, district) VALUES(?, ?);
+        """
+        self.execute(sql, parameters=(name,district), commit=True)
+
     def get_farm(self, district_id: int):
         sql = f"""
         SELECT * FROM farm WHERE district = {district_id};
         """
         return self.execute(sql, fetchall=True)
     
+    def get_farm_info(self, farm_id: int):
+        sql = f"""SELECT farm.id, district.id, farm.name, district.name
+        FROM farm INNER JOIN district ON district.id = farm.district WHERE farm.id = {farm_id};"""
+        return self.execute(sql, fetchall=True)
+    
     def get_farm_one(self, farm_id: int):
         return self.execute(f"SELECT name FROM farm WHERE id={farm_id}", fetchall=True)
 
+    def delete_farm(self, id: int):
+        self.execute(f"DELETE FROM farm WHERE id={id}", commit=True)
+
+
     # farmer
+    def add_farmer(self, name: str, farm: int):
+        sql = f"""
+        INSERT INTO farmer (name, farm) VALUES (?, ?)
+        """
+        self.execute(sql, parameters=(name, farm), commit=True)
+
     def get_farmer(self, farm_id: int):
         sql = f"""
         SELECT * FROM farmer WHERE farm = {farm_id};
@@ -147,7 +176,7 @@ class Database:
 
     def get_farmer_info(self, farmer_id: int):
         sql = f"""SELECT farmer.id, farmer.name, farm.name, district.name, 
-        farmer.excel 
+        farmer.excel, farmer.file_name 
         FROM farmer INNER JOIN farm ON farmer.farm = farm.id INNER JOIN 
         district ON district.id = farm.district WHERE farmer.id = {farmer_id};"""
         return self.execute(sql, fetchall=True)
@@ -155,9 +184,9 @@ class Database:
     def get_farmer_one(self, farmer_id: int):
         return self.execute(f"SELECT * FROM farmer WHERE id={farmer_id}",
                             fetchall=True)
-    def update_excel(self, excel: str, id: int):
-        sql = "UPDATE farmer SET excel=? WHERE id=?"
-        self.execute(sql, parameters=(excel, id), commit=True)
+    def update_excel(self, excel: str, file_name: str, id: int):
+        sql = "UPDATE farmer SET excel=?, file_name=? WHERE id=?"
+        self.execute(sql, parameters=(excel, file_name, id), commit=True)
 
     def update_word(self, word: str, id: int):
         sql = "UPDATE farmer SET word=? WHERE id=?"
@@ -166,6 +195,9 @@ class Database:
     def clear_farmer(self):
         for i in range(19):
             self.execute("UPDATE farmer SET excel=NULL", commit=True)
+    
+    def delete_farmer(self, id: int):
+        self.execute(f"DELETE FROM farmer WHERE id={id}", commit=True)
 
 def logger(statement):
     print(f"""

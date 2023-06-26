@@ -7,7 +7,7 @@ def excel(excel_file: str):
     :return list:
     """
     print("excel_file:", excel_file)
-    workbook = load_workbook(excel_file)
+    workbook = load_workbook(excel_file, data_only=True)
     workbook = workbook["Жадвал"]
 
     sheet = workbook
@@ -24,7 +24,6 @@ def excel(excel_file: str):
         result += "{} - {} | {} | {} |\n".format(kontur.value, fosfor.value,
                                                  kaliy.value, gumus.value)
         i += 1
-    print(result)
     return result
 
 
