@@ -5,8 +5,10 @@ from aiogram.dispatcher import FSMContext
 from keyboards.inline.farm_keyboards import farmer_keyboards
 from data.config import ADMINS
 from keyboards.default.menu import empty_keyboard, cancel_keyboard, menu
-from keyboards.inline.farm_keyboards import excel_cd, update_file_keyboards
+from keyboards.inline.farm_keyboards import excel_cd, update_file_keyboards, menu_cd
 from loader import dp, db
+
+from .menu_handlers import show_item
 
 from utils.misc.my_functions import excel
 
@@ -88,6 +90,15 @@ async def update_file(call: types.CallbackQuery, callback_data: dict,
                               parse_mode='HTML', reply_markup=markup)
     await UpdateExcel.select_file.set()
 
+# @dp.callback_query_handler(menu_cd.filter(), state=UpdateExcel.select_file)
+# async def cancel_update_file_handler(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
+#     cancel = callback_data.get("cancel")
+#     district_id = callback_data.get("district")
+#     farmer_id = callback_data.get("farmer")
+#     farm_id = callback_data.get("farm")
+#     if cancel == "update_files_cancel":
+#         await show_item(call, district_id, farm_id, farmer_id)
+        
 @dp.callback_query_handler(excel_cd.filter(), state=UpdateExcel.select_file)
 async def update_excel(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
     await call.message.edit_reply_markup()
@@ -110,24 +121,18 @@ async def get_excel_file(message: types.Message, state: FSMContext):
         farmer_id = data.get("farmer_id")
         type = data.get("type")
 
+    farmer_info = db.get_farmer_info(farmer_id=farmer_id)
+    district_name = farmer_info[0][3]
+    farm_name = farmer_info[0][2]
+    file_name = farmer_info[0][5]
+    file_name_map = farmer_info[0][6]
+
     if type == "excel":
         try:
-            farmer_info = db.get_farmer_info(farmer_id=farmer_id)
-   
-            district_name = farmer_info[0][3]
-            farm_name = farmer_info[0][2]
-            path = f'download/excel/{district_name}/{farm_name}/'
-
-            excels = sorted([x for x in os.listdir(path=path)])
+            path = f'download\excel\{district_name}\{farm_name}\\'
+            file = f"{path}\{message.document.file_name}"
             xabar = await message.answer("Текширилмоқда...")
 
-            # for _excel in excels:
-            #     if _excel.startswith(f"{district_id}-{farm_id}"
-            #                         f"-{farmer_id}"):
-            #         os.remove(f"{path}/{_excel}")
-  
-            file = f"{path}/{message.document.file_name}"
- 
             await message.document.download(
                 destination_file=file)
             try:
@@ -136,9 +141,13 @@ async def get_excel_file(message: types.Message, state: FSMContext):
                 print(err)
                 await message.answer("Файл мос эмас, файлни текширинг ва қайта юборинг !")
                 return
-
-
-
+            
+            file_path = f"download\excel\{district_name}\{farm_name}\{file_name}"
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                print("File deleted successfully.")
+            else:
+                print("File not found!")
 
             db.update_excel(excel=doc_id, file_name=message.document.file_name, id=farmer_id)
             markup = await farmer_keyboards(district_id, farm_id)
@@ -149,18 +158,22 @@ async def get_excel_file(message: types.Message, state: FSMContext):
         except Exception as err:
             print(err)
     elif type == "word":
+        path = f'download\word\{district_name}\{farm_name}\\'
+        file = f"{path}\{message.document.file_name}"
         try:
-            xabar = await message.answer("Текширилмоқда...")
-            words = sorted([x for x in os.listdir('download/word/')])
-            for word in words:
-                if word.startswith(f"{district_id}-{farm_id}"
-                                    f"-{farmer_id}"):
-                    os.remove(f"download/word/{word}")
-            await message.document.download(
-                destination_file=f"download/word/{district_id}-{farm_id}-{farmer_id}"
-                                 f"-{message.document.file_name}")
+            xabar = await message.answer("Юкланмоқда...")
 
-            db.update_word(word=doc_id, id=farmer_id)
+            await message.document.download(
+                destination_file=file)
+            
+            file_path_map = f"download\word\{district_name}\{farm_name}\{file_name_map}"
+            if os.path.exists(file_path_map):
+                os.remove(file_path_map)
+                print("File deleted successfully.")
+            else:
+                print("File not found.")
+                
+            db.update_word(word=doc_id, file_name_map=message.document.file_name, id=farmer_id)
             markup = await farmer_keyboards(district_id, farm_id)
             await xabar.delete()
             await message.answer("Юкланди", reply_markup=types.ReplyKeyboardRemove())

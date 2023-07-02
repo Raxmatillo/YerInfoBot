@@ -59,6 +59,7 @@ class Database:
         excel VARCHAR(300) NULL,
         word VARCHAR(300) NULL,
         file_name VARCHAR(300) NULL,
+        file_name_map VARCHAR(300) NULL,
         FOREIGN KEY (farm) REFERENCES farm(id)
             ON UPDATE CASCADE
             ON DELETE CASCADE
@@ -176,7 +177,7 @@ class Database:
 
     def get_farmer_info(self, farmer_id: int):
         sql = f"""SELECT farmer.id, farmer.name, farm.name, district.name, 
-        farmer.excel, farmer.file_name 
+        farmer.excel, farmer.file_name, farmer.file_name_map 
         FROM farmer INNER JOIN farm ON farmer.farm = farm.id INNER JOIN 
         district ON district.id = farm.district WHERE farmer.id = {farmer_id};"""
         return self.execute(sql, fetchall=True)
@@ -184,13 +185,14 @@ class Database:
     def get_farmer_one(self, farmer_id: int):
         return self.execute(f"SELECT * FROM farmer WHERE id={farmer_id}",
                             fetchall=True)
+    
     def update_excel(self, excel: str, file_name: str, id: int):
         sql = "UPDATE farmer SET excel=?, file_name=? WHERE id=?"
         self.execute(sql, parameters=(excel, file_name, id), commit=True)
 
-    def update_word(self, word: str, id: int):
-        sql = "UPDATE farmer SET word=? WHERE id=?"
-        self.execute(sql, parameters=(word, id), commit=True)
+    def update_word(self, word: str, file_name_map: str, id: int):
+        sql = "UPDATE farmer SET word=?, file_name_map=? WHERE id=?"
+        self.execute(sql, parameters=(word, file_name_map, id), commit=True)
 
     def clear_farmer(self):
         for i in range(19):

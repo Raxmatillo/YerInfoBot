@@ -7,6 +7,11 @@ from utils.set_bot_commands import set_default_commands
 
 
 async def on_startup(dispatcher):
+    # db.create_table_districts()
+    # db.create_table_farms()
+    # db.create_table_farmer()
+    # db.create_table_users() 
+
     await set_default_commands(dispatcher)
     await on_startup_notify(dispatcher)
 

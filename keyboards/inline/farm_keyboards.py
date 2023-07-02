@@ -4,7 +4,7 @@ from aiogram.utils.callback_data import CallbackData
 from loader import db
 
 menu_cd = CallbackData("menu", "level", "district", "farm", "farmer", "delete", "cancel")
-excel_cd = CallbackData("excel", "district_id", "farm_id", "farmer_id", "type")
+excel_cd = CallbackData("excel", "district_id", "farm_id", "farmer_id", "type",)
 def make_callback_data(level, district="0", farm="0", farmer="0", delete=False, cancel=""):
     return menu_cd.new(
         level=level, district=district, farm=farm, farmer=farmer, delete=delete, cancel=cancel
@@ -100,7 +100,8 @@ async def one_farmer_keyboards(
             text="⬅️ Ортга",
             callback_data=make_callback_data(
                 level=CURRENT_LEVEL-1, district=district_id, farm=farm_id,
-                farmer=farmer_id
+                farmer=farmer_id, 
+                cancel="one_farmer_cancel"
             )
         )
     )
@@ -138,7 +139,7 @@ async def update_file_keyboards(
     )
     markup.insert(
         InlineKeyboardButton(
-            text="Word",
+            text="Karta",
             callback_data=excel_cd.new(
                 district_id=district_id,
                 farm_id=farm_id,
@@ -153,7 +154,8 @@ async def update_file_keyboards(
             text="⬅️ Ортга",
             callback_data=make_callback_data(
                 level=CURRENT_LEVEL - 1, district=district_id, farm=farm_id,
-                farmer=farmer_id
+                farmer=farmer_id,
+                cancel="update_files_cancel"
             )
         )
     )

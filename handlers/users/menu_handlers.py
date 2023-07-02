@@ -88,7 +88,8 @@ async def show_item(callback: CallbackQuery, district, farm, farmer):
 
     if callback.from_user.id == int(ADMINS[0]):
         markup = await one_farmer_keyboards(district_id=district,
-                                            farm_id=farm, farmer_id=farmer,
+                                            farm_id=farm,
+                                            farmer_id=farmer,
                                             admin=True)
     else:
         markup = await one_farmer_keyboards(
@@ -104,7 +105,6 @@ async def show_item(callback: CallbackQuery, district, farm, farmer):
             
     district_name = farmer_info[0][3]
     farm_name = farmer_info[0][2]
-    farmer_name = farmer_info[0][1]
     farmer_file_name = farmer_info[0][5]
 
     try:
@@ -112,20 +112,39 @@ async def show_item(callback: CallbackQuery, district, farm, farmer):
     except Exception as err:
         print(err, 'nomida xatolik')
     await callback.message.edit_reply_markup()
-    if item[0][-3] == None:
-        await callback.message.answer(text="Бу бўлим ҳали тайёр эмас!",
-                                      reply_markup=markup)
-    else:
+
+    if item[0][3] and item[0][4]:
+        await callback.message.answer_document(document=item[0][4], caption="Fayl")
         info_excel = "<b>Контур - Фосфор | Калий | Гумус</b>\n\n"
         info_excel += excel(excel_file=file_path)
-        print(info_excel)
-        await callback.message.answer_document(document=item[0][-3],
+        await callback.message.answer_document(document=item[0][3],
                                                caption="Excel fayl")
 
         await callback.message.answer(text=info_excel, reply_markup=markup,
                                       parse_mode='html')
         await callback.message.edit_text(text=f"{info[0][3]} / {info[0][2]} "
                                               f" / {info[0][1]}")
+    else:
+        if item[0][4] is not None:
+            await callback.message.answer_document(document=item[0][4], caption="Fayl")
+            await callback.message.edit_text(text=f"{info[0][3]} / {info[0][2]} "
+                                                f" / {info[0][1]}")
+            await callback.message.answer("Меню", reply_markup=markup)
+        elif item[0][3] is not None:
+            info_excel = "<b>Контур - Фосфор | Калий | Гумус</b>\n\n"
+            info_excel += excel(excel_file=file_path)
+            await callback.message.answer_document(document=item[0][3],
+                                                caption="Excel fayl")
+
+            await callback.message.answer(text=info_excel, reply_markup=markup,
+                                        parse_mode='html')
+            await callback.message.edit_text(text=f"{info[0][3]} / {info[0][2]} "
+                                                f" / {info[0][1]}")
+        else:
+            await callback.message.answer(text="Бу бўлим ҳали тайёр эмас!",
+                                      reply_markup=markup)
+        
+    
 
 
 
@@ -257,21 +276,17 @@ async def del_farm_from_db(call: types.CallbackQuery, callback_data: dict, state
     data = await state.get_data()
 
     district_id = data["district_id"]
-    cancel = callback_data.get("cancel")
-    if cancel == "farm_cancel":
+
+    try:
+        farm_id = callback_data.get("farm")
+        farm = db.get_farm_one(farm_id=farm_id)[0][0]
+        db.delete_farm(id=farm_id)
+        await call.answer(f"✅ {farm} ўчирилди", cache_time=1)
         await list_farms(callback=call, district=district_id)
-    else:
-        try:
-            farm_id = callback_data.get("farm")
-            farm = db.get_farm_one(farm_id=farm_id)[0][0]
-            print(farm_id)
-            db.delete_farm(id=farm_id)
-            await call.answer(f"✅ {farm} ўчирилди", cache_time=1)
-            await list_farms(callback=call, district=district_id)
-        except Exception as err:
-            print("Farm o'chirishda xatolik", err)
-        finally:
-            await state.finish()
+    except Exception as err:
+        print("Farm o'chirishda xatolik", err)
+    finally:
+        await state.finish()
 
 
 
@@ -283,9 +298,8 @@ async def add_farmer(call: types.CallbackQuery, callback_data: dict, state: FSMC
     await call.message.answer("Янги фермер номини ёзинг")
     district = callback_data.get('item_id')
     farm = callback_data.get("_item_id")
+    await state.update_data(district=district, farm=farm)
     await state.set_state("add_farmer")
-    print(callback_data)
-    await state.update_data(AdminFilter(), district=district, farm=farm)
 
 
 @dp.message_handler(AdminFilter(), state="add_farmer")
@@ -294,7 +308,7 @@ async def add_farmer_to_db(message: types.Message, state: FSMContext):
     district = data["district"]
     farm = data["farm"]
     try:
-        db.add_farmer(AdminFilter(), name=message.text, farm=farm)
+        db.add_farmer(name=message.text, farm=farm)
         markup = await farmer_keyboards(district, farm)
 
         markup.add(
@@ -312,7 +326,11 @@ async def add_farmer_to_db(message: types.Message, state: FSMContext):
     district_name = farmer_info[0][3]
     farm_name = farmer_info[0][2]   
 
-    path_district = f"download/excel/{district_name}" if os.path.exists(f"download/excel/{district_name}") else os.mkdir(f"download/excel/{district_name}")
+    if os.path.exists(f"download\excel\{district_name}"): path_district = f"download\excel\{district_name}"  
+    else: 
+        os.mkdir(f"download\excel\{district_name}")
+        path_district = f"download\excel\{district_name}"
+    print(path_district, 'ey eshak qara')
 
     mode = 0o666
     path = os.path.join(str(path_district), farm_name)
@@ -324,7 +342,6 @@ async def add_farmer_to_db(message: types.Message, state: FSMContext):
 async def del_farmer(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
     district_id = callback_data.get("item_id")
     farm_id = callback_data.get("_item_id")
-    farmer_id = callback_data.get("farmer_id")
     await call.message.edit_reply_markup()
     markup = await farmer_keyboards(district_id=district_id, farm_id=farm_id, delete=True)
     await call.message.answer("Бўлим танланг", reply_markup=markup)
@@ -339,31 +356,51 @@ async def del_farmer_from_db(call: types.CallbackQuery, callback_data: dict, sta
     district_id = data["district_id"]
     farmer_id = callback_data.get("farmer")
 
+    try:
+        farmer = db.get_farmer_one(farmer_id=farmer_id)[0][1]
+        
+        farmer_info = db.get_farmer_info(farmer_id=farmer_id)
+        district_name = farmer_info[0][3]
+        farm_name = farmer_info[0][2]
+        file_name = farmer_info[0][5]
+        file_name_map = farmer_info[0][6]
+        file_path = f"download\excel\{district_name}\{farm_name}\{file_name}"
+        file_path_map = f"download\word\{district_name}\{farm_name}\{file_name_map}"
+        
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            print("File deleted successfully.")
+        if os.path.exists(file_path_map):
+            os.remove(file_path_map)
+            print("File deleted successfully.")
+        else:
+            print("File not found.")
+
+        db.delete_farmer(id=farmer_id)
+        await call.answer(f"✅ {farmer} ўчирилди", cache_time=1)
+        await list_farmers(callback=call, district=district_id, farm=farm_id)
+    except Exception as err:
+        print("Farmer o'chirishda xatolik", err)
+    finally:
+        await state.finish()
+
+
+
+
+
+@dp.callback_query_handler(AdminFilter(), menu_cd.filter(), state="*")
+async def cancel_one_farmer(call: CallbackQuery, callback_data: dict, state: FSMContext):
     cancel = callback_data.get("cancel")
     district_id = callback_data.get("district")
+    farm_id = callback_data.get("farm")
+    farmer_id = callback_data.get("farmer")
 
+    if cancel == "farm_cancel":
+        await list_farms(callback=call, district=district_id)
     if cancel == "farmer_cancel":
         await list_farmers(callback=call, district=district_id, farm=farm_id)
-    else:
-        try:
-            farmer = db.get_farmer_one(farmer_id=farmer_id)[0][1]
-            
-            farmer_info = db.get_farmer_info(farmer_id=farmer_id)
-            district_name = farmer_info[0][3]
-            farm_name = farmer_info[0][2]
-            file_name = farmer_info[0][5]
-            file_path = f"download/excel/{district_name}/{farm_name}/{file_name}"
-           
-            if os.path.exists(file_path):
-                os.remove(file_path)
-                print("File deleted successfully.")
-            else:
-                print("File not found.")
-
-            db.delete_farmer(id=farmer_id)
-            await call.answer(f"✅ {farmer} ўчирилди", cache_time=1)
-            await list_farmers(callback=call, district=district_id, farm=farm_id)
-        except Exception as err:
-            print("Farmer o'chirishda xatolik", err)
-        finally:
-            await state.finish()
+    if cancel == "one_farmer_cancel":
+        await list_farmers(call, district_id, farm_id)
+    if cancel == "update_files_cancel":
+        await show_item(call, district_id, farm_id, farmer_id)
+    await state.finish()
