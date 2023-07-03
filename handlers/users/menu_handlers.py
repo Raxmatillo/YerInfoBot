@@ -102,7 +102,7 @@ async def show_item(callback: CallbackQuery, district, farm, farmer):
     item = db.get_farmer_one(farmer_id=farmer)
 
     farmer_info = db.get_farmer_info(farmer_id=farmer)
-            
+    print(farmer_info)
     district_name = farmer_info[0][3]
     farm_name = farmer_info[0][2]
     farmer_file_name = farmer_info[0][5]
@@ -143,10 +143,6 @@ async def show_item(callback: CallbackQuery, district, farm, farmer):
         else:
             await callback.message.answer(text="Бу бўлим ҳали тайёр эмас!",
                                       reply_markup=markup)
-        
-    
-
-
 
 
 # Yuqoridagi barcha funksiyalar uchun yagona handler
@@ -176,10 +172,6 @@ async def navigate(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await current_level_function(
         call, district=district, farm=farm, farmer=farmer
     )
-
-
-
-
 
 
 # district add and delete
@@ -241,6 +233,7 @@ async def add_farm(call: types.CallbackQuery, callback_data: dict, state: FSMCon
     await state.set_state("add_farm")
     await state.update_data(district=callback_data.get("item_id"))
 
+
 @dp.message_handler(AdminFilter(), state="add_farm")
 async def add_farm_to_db(message: types.Message, state: FSMContext):
     data = await state.get_data()
@@ -289,8 +282,6 @@ async def del_farm_from_db(call: types.CallbackQuery, callback_data: dict, state
         await state.finish()
 
 
-
-
 # farmer add and delete
 @dp.callback_query_handler(AdminFilter(), farmer_callback.filter(item_name="add_item"))
 async def add_farmer(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
@@ -335,7 +326,6 @@ async def add_farmer_to_db(message: types.Message, state: FSMContext):
     mode = 0o666
     path = os.path.join(str(path_district), farm_name)
     os.mkdir(path, mode)
-
 
 
 @dp.callback_query_handler(AdminFilter(), farmer_callback.filter(item_name="del_item"))
@@ -383,9 +373,6 @@ async def del_farmer_from_db(call: types.CallbackQuery, callback_data: dict, sta
         print("Farmer o'chirishda xatolik", err)
     finally:
         await state.finish()
-
-
-
 
 
 @dp.callback_query_handler(AdminFilter(), menu_cd.filter(), state="*")
