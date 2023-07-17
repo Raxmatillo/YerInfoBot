@@ -161,3 +161,15 @@ async def update_file_keyboards(
     )
 
     return markup
+
+
+
+async def yes_no_keyboards():
+    markup = InlineKeyboardMarkup(row_width=2)
+    markup.add(
+        InlineKeyboardButton(text="⬅️ Ортга", callback_data="no_keyboard")
+    )
+    markup.add(
+        InlineKeyboardButton(text="❌ Xa", callback_data="yes_keyboard")
+    )
+    return markup

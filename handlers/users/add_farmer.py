@@ -4,18 +4,18 @@ from aiogram import types
 from aiogram.dispatcher import FSMContext
 from keyboards.inline.farm_keyboards import farmer_keyboards
 from data.config import ADMINS
-from keyboards.default.menu import empty_keyboard, cancel_keyboard, menu
-from keyboards.inline.farm_keyboards import excel_cd, update_file_keyboards, menu_cd
+from keyboards.default.menu import cancel_keyboard, menu
+from keyboards.inline.farm_keyboards import excel_cd, update_file_keyboards
 from loader import dp, db
 
-from .menu_handlers import show_item
+from filters import AdminFilter
 
 from utils.misc.my_functions import excel
 
-from states.FarmerState import AddFarmer, UpdateExcel
+from states.FarmerState import UpdateExcel
 
 
-@dp.message_handler(text="Бекор қилиш", state="*")
+@dp.message_handler(AdminFilter(), text="Бекор қилиш", state="*")
 async def cancel_handler(message: types.Message, state: FSMContext):
     await state.finish()
     await message.answer("Амал бекор қилинди", reply_markup=menu)
